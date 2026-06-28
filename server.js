@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import authRoutes from './src/routes/auth.routes.js';
 import groupsRoutes from './src/routes/groups.routes.js';
 import predictionsRoutes from './src/routes/predictions.routes.js';
+
+console.log('--- CRON SERVICE CARGADO ---');
 import startCronJob from './src/services/cronService.js';
 
 dotenv.config();
