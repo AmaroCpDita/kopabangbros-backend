@@ -16,16 +16,21 @@ export const createGroup = async (req, res) => {
     const { name, adminId } = req.body;
     if (!name || !adminId) return res.status(400).json({ message: 'Nombre y adminId obligatorios' });
 
-    const inviteCode = generateUniqueCode();
-    
     const user = await User.findById(adminId);
     if (!user) return res.status(404).json({ message: 'Usuario admin no encontrado' });
 
+    // Límite de 3 grupos por usuario
+    const existingCount = await Group.countDocuments({ members: adminId });
+    if (existingCount >= 3) {
+      return res.status(400).json({ message: 'Solo puedes pertenecer a un máximo de 3 grupos' });
+    }
+
+    const inviteCode = generateUniqueCode();
     const newGroup = await Group.create({
       name,
       adminId,
       inviteCode,
-      members: [adminId] // Admin se une automáticamente
+      members: [adminId]
     });
 
     res.status(201).json(newGroup);
@@ -47,6 +52,11 @@ export const joinGroup = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
     if (!group.members.includes(userId)) {
+      // Límite de 3 grupos por usuario
+      const existingCount = await Group.countDocuments({ members: userId });
+      if (existingCount >= 3) {
+        return res.status(400).json({ message: 'Solo puedes pertenecer a un máximo de 3 grupos' });
+      }
       group.members.push(userId);
       await group.save();
     }
@@ -64,6 +74,30 @@ export const getUserGroups = async (req, res) => {
     res.json(groups);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener los grupos del usuario', error: error.message });
+  }
+};
+
+export const deleteGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+
+    const group = await Group.findById(id);
+    if (!group) return res.status(404).json({ message: 'Grupo no encontrado' });
+
+    // Solo el admin puede borrar el grupo
+    if (group.adminId.toString() !== userId) {
+      // Si no es admin, simplemente lo sacamos del grupo
+      group.members = group.members.filter(m => m.toString() !== userId);
+      await group.save();
+      return res.json({ message: 'Saliste del grupo exitosamente' });
+    }
+
+    // Si es admin, borra el grupo completo
+    await Group.findByIdAndDelete(id);
+    res.json({ message: 'Grupo eliminado exitosamente' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al eliminar el grupo', error: error.message });
   }
 };
 
