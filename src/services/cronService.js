@@ -12,11 +12,11 @@ const startCronJob = () => {
   cron.schedule('*/5 * * * *', async () => {
     console.log('[CRON] Iniciando web scraping de resultados en Google Sports...');
     try {
-      const SCRAPE_URL = process.env.SCRAPE_URL || 'https://www.google.com/search?q=partidos+mundial+2026+hoy';
+      const SCRAPE_URL = process.env.SCRAPE_URL || 'https://www.google.com/search?q=resultados+partidos+futbol+hoy&hl=es';
       
       let html;
       try {
-        // Delay aleatorio entre 5 y 15 segundos (5000ms - 15000ms)
+        // Delay aleatorio entre 5 y 15 segundos (5000ms - 15000ms) ejecutado ANTES de la petición
         const delay = Math.floor(Math.random() * (15000 - 5000 + 1) + 5000);
         console.log(`[CRON] Pausa anti-bot: Esperando ${(delay / 1000).toFixed(1)} segundos...`);
         await sleep(delay);
@@ -25,6 +25,7 @@ const startCronJob = () => {
           headers: {
             // User-Agent de navegador real para evitar bloqueos
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'es-ES,es;q=0.9', // Asegura resultados en español
             'Referer': 'https://www.google.com/'
           }
