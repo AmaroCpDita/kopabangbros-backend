@@ -5,6 +5,8 @@ import { Match } from '../models/Match.js';
 import { Prediction } from '../models/Prediction.js';
 import { computePoints } from '../controllers/predictions.controller.js';
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 const startCronJob = () => {
   // Ejecutar cada 5 minutos
   cron.schedule('*/5 * * * *', async () => {
@@ -14,17 +16,27 @@ const startCronJob = () => {
       
       let html;
       try {
+        // Delay aleatorio entre 5 y 15 segundos (5000ms - 15000ms)
+        const delay = Math.floor(Math.random() * (15000 - 5000 + 1) + 5000);
+        console.log(`[CRON] Pausa anti-bot: Esperando ${(delay / 1000).toFixed(1)} segundos...`);
+        await sleep(delay);
+
         const response = await axios.get(SCRAPE_URL, {
           headers: {
             // User-Agent de navegador real para evitar bloqueos
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept-Language': 'es-ES,es;q=0.9', // Asegura resultados en español
+            'Referer': 'https://www.google.com/'
           }
         });
         html = response.data;
       } catch (error) {
-        console.warn(`[CRON] Advertencia: No se pudo acceder a Google. Error: ${error.message}`);
-        return; 
+        if (error.response && error.response.status === 429) {
+          console.warn('[CRON] Advertencia: Límite de peticiones excedido (Error 429). Se reintentará en el próximo ciclo.');
+        } else {
+          console.warn(`[CRON] Advertencia: No se pudo acceder a la URL. Error: ${error.message}`);
+        }
+        return; // Salir de esta iteración si falla la conexión
       }
 
       const $ = cheerio.load(html);
