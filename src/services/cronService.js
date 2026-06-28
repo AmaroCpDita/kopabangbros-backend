@@ -11,8 +11,9 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const runScrapingTask = async () => {
   console.log('[CRON] Iniciando web scraping de resultados en Flashscore...');
   try {
-    // URL específica del Mundial para asegurar que todos los bloques son relevantes
-    const SCRAPE_URL = process.env.SCRAPE_URL || 'https://m.flashscore.cl/futbol/mundo/copa-mundial/resultados/';
+    // Usamos la página principal (partidos de hoy) porque la del mundial dio 404.
+    // Flashscore mostrará los partidos del día y nuestro bot filtrará solo los que existan en tu Base de Datos.
+    const SCRAPE_URL = process.env.SCRAPE_URL || 'https://m.flashscore.cl/';
     
     let html;
     try {
