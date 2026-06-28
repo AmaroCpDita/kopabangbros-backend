@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import express from 'express';
+import axios from 'axios';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { Match } from './src/models/Match.js';
@@ -62,19 +63,45 @@ app.get('/api/partidos', async (req, res) => {
 app.post('/api/partidos/seed', async (req, res) => {
   try {
     await Match.deleteMany({});
-    const now = new Date();
-    const matches = [
-      { apiId: 'm1', homeTeam: 'USA', awayTeam: 'Senegal', date: new Date(now.getTime() + 1000 * 60 * 60 * 2), phase: 'Octavos de Final', status: 'scheduled' },
-      { apiId: 'm2', homeTeam: 'Mexico', awayTeam: 'Argentina', date: new Date(now.getTime() + 1000 * 60 * 60 * 4), phase: 'Octavos de Final', status: 'scheduled' },
-      { apiId: 'm3', homeTeam: 'Canada', awayTeam: 'France', date: new Date(now.getTime() + 1000 * 60 * 60 * 24), phase: 'Octavos de Final', status: 'scheduled' },
-      { apiId: 'm4', homeTeam: 'Brazil', awayTeam: 'Spain', date: new Date(now.getTime() + 1000 * 60 * 60 * 26), phase: 'Octavos de Final', status: 'scheduled' },
-      { apiId: 'm5', homeTeam: 'TBD', awayTeam: 'TBD', date: new Date(now.getTime() + 1000 * 60 * 60 * 48), phase: 'Cuartos de Final', status: 'scheduled' },
-      { apiId: 'm6', homeTeam: 'TBD', awayTeam: 'TBD', date: new Date(now.getTime() + 1000 * 60 * 60 * 50), phase: 'Cuartos de Final', status: 'scheduled' }
-    ];
-    await Match.insertMany(matches);
-    res.json({ message: 'Partidos inicializados' });
+    
+    // Fetch from real API
+    const API_KEY = process.env.FOOTBALL_API_KEY;
+    if (!API_KEY) throw new Error('No FOOTBALL_API_KEY found');
+    
+    const response = await axios.get('https://api.football-data.org/v4/competitions/WC/matches', {
+      headers: { 'X-Auth-Token': API_KEY }
+    });
+
+    const phaseMap = {
+      'GROUP_STAGE': 'Fase de Grupos',
+      'LAST_32': 'Dieciseisavos de Final',
+      'LAST_16': 'Octavos de Final',
+      'QUARTER_FINALS': 'Cuartos de Final',
+      'SEMI_FINALS': 'Semifinal',
+      'THIRD_PLACE': 'Tercer Puesto',
+      'FINAL': 'Final'
+    };
+
+    const matchesToInsert = response.data.matches.map(m => {
+      const homeTeam = m.homeTeam?.name || 'TBD';
+      const awayTeam = m.awayTeam?.name || 'TBD';
+      
+      return {
+        apiId: m.id.toString(),
+        homeTeam: homeTeam,
+        awayTeam: awayTeam,
+        homeGoals: m.score?.fullTime?.home ?? null,
+        awayGoals: m.score?.fullTime?.away ?? null,
+        date: new Date(m.utcDate),
+        phase: phaseMap[m.stage] || m.stage,
+        status: m.status === 'FINISHED' ? 'finished' : (m.status === 'IN_PLAY' || m.status === 'PAUSED' ? 'live' : 'scheduled')
+      };
+    });
+
+    await Match.insertMany(matchesToInsert);
+    res.json({ message: 'Partidos reales inicializados', count: matchesToInsert.length });
   } catch (error) {
-    res.status(500).json({ message: 'Error al inicializar', error: error.message });
+    res.status(500).json({ message: 'Error al seedear', error: error.message });
   }
 });
 
