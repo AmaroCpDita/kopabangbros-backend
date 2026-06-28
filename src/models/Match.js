@@ -6,6 +6,8 @@ const matchSchema = new mongoose.Schema({
   awayTeam: { type: String, required: true },
   homeGoals: { type: Number, default: null },
   awayGoals: { type: Number, default: null },
+  date: { type: Date, required: true },
+  phase: { type: String, required: true },
   status: { type: String, default: 'scheduled' } // 'scheduled', 'finished'
 }, { timestamps: true });
 
