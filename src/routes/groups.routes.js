@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.post('/', createGroup);
 router.post('/join', joinGroup);
+router.get('/user/:userId', getUserGroups);  // DEBE ir antes que /:id
 router.get('/:id', getGroupById);
-router.get('/user/:userId', getUserGroups);
 
 export default router;
