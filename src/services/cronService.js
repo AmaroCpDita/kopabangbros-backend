@@ -21,6 +21,12 @@ const runApiUpdate = async () => {
       headers: { 'X-Auth-Token': API_KEY }
     });
 
+    // Recomendación del autor de la API: Examinar headers para evitar ratelimiting
+    const requestsAvailable = response.headers['x-requests-available-minute'];
+    if (requestsAvailable !== undefined) {
+      console.log(`[CRON] Diagnóstico de API: Quedan ${requestsAvailable} peticiones disponibles este minuto.`);
+    }
+
     const matchesData = response.data.matches || [];
     // Filtramos los que están en juego, en pausa (medio tiempo) o terminados
     const activeMatches = matchesData.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED' || m.status === 'FINISHED');
@@ -69,7 +75,12 @@ const runApiUpdate = async () => {
     
     console.log('[CRON] Ciclo de actualización vía API finalizado exitosamente.');
   } catch (error) {
-    console.error('[CRON] Error crítico en la conexión a la API:', error.message);
+    if (error.response && error.response.status === 429) {
+      const retryAfter = error.response.headers['retry-after'] || 'unos';
+      console.warn(`[CRON] ADVERTENCIA: Límite de API excedido (HTTP 429). El proveedor pide pausar por ${retryAfter} segundos.`);
+    } else {
+      console.error('[CRON] Error crítico en la conexión a la API:', error.message);
+    }
   }
 };
 
