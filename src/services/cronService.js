@@ -8,11 +8,12 @@ import { computePoints } from '../controllers/predictions.controller.js';
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const startCronJob = () => {
-  // Ejecutar cada 5 minutos
-  cron.schedule('*/5 * * * *', async () => {
+  // Ejecutar cada 2 minutos
+  cron.schedule('*/2 * * * *', async () => {
     console.log('[CRON] Iniciando web scraping de resultados en Flashscore...');
     try {
-      const SCRAPE_URL = process.env.SCRAPE_URL || 'https://m.flashscore.cl/';
+      // URL específica del Mundial para asegurar que todos los bloques son relevantes
+      const SCRAPE_URL = process.env.SCRAPE_URL || 'https://m.flashscore.cl/futbol/mundo/copa-mundial/resultados/';
       
       let html;
       try {
@@ -41,6 +42,15 @@ const startCronJob = () => {
       }
 
       const $ = cheerio.load(html);
+      
+      // LOG DE DEPURACIÓN (Muestra los primeros 500 caracteres del body para verificar la estructura)
+      const bodyHtml = $('body').html();
+      if (bodyHtml) {
+        console.log('[DEBUG] HTML detectado (primeros 500 chars):', bodyHtml.substring(0, 500));
+      } else {
+        console.warn('[DEBUG] No se detectó un <body> en el HTML descargado.');
+      }
+
       const matchesData = [];
 
       // Selectores de Flashscore indicados
