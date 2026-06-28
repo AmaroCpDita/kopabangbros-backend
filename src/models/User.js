@@ -1,11 +1,10 @@
-export const users = [];
+import mongoose from 'mongoose';
 
-export class User {
-  constructor(name, email, password) {
-    this.id = Date.now().toString();
-    this.name = name;
-    this.email = email;
-    this.password = password; // In a real app, this should be hashed
-    this.groupId = null;
-  }
-}
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', default: null }
+}, { timestamps: true });
+
+export const User = mongoose.model('User', userSchema);

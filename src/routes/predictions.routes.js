@@ -1,9 +1,10 @@
 import express from 'express';
-import { createPrediction, getGroupScore } from '../controllers/predictions.controller.js';
-
+import { createPrediction, getGroupGlobalScore, calculatePoints, getUserPredictions } from '../controllers/predictions.controller.js';
 const router = express.Router();
 
 router.post('/', createPrediction);
-router.get('/score/:groupId', getGroupScore);
+router.post('/calculate', calculatePoints);
+router.get('/score/:groupId', getGroupGlobalScore);
+router.get('/user/:userId', getUserPredictions);
 
 export default router;

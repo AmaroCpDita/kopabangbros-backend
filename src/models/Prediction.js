@@ -1,12 +1,11 @@
-export const predictions = [];
+import mongoose from 'mongoose';
 
-export class Prediction {
-  constructor(userId, matchId, teamAdvancing, exactResult) {
-    this.id = Date.now().toString();
-    this.userId = userId;
-    this.matchId = matchId;
-    this.teamAdvancing = teamAdvancing; // e.g. "USA"
-    this.exactResult = exactResult; // e.g. "2-1"
-    this.points = 0; // calculated later when match ends
-  }
-}
+const predictionSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  matchId: { type: String, required: true },
+  homeGoals: { type: Number, required: true },
+  awayGoals: { type: Number, required: true },
+  points: { type: Number, default: 0 }
+}, { timestamps: true });
+
+export const Prediction = mongoose.model('Prediction', predictionSchema);

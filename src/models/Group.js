@@ -1,11 +1,10 @@
-export const groups = [];
+import mongoose from 'mongoose';
 
-export class Group {
-  constructor(name, adminId) {
-    this.id = Date.now().toString();
-    this.name = name;
-    this.adminId = adminId;
-    this.inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase(); // 6 chars code
-    this.members = [adminId]; // array of user IDs
-  }
-}
+const groupSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  inviteCode: { type: String, required: true, unique: true },
+  members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+}, { timestamps: true });
+
+export const Group = mongoose.model('Group', groupSchema);
