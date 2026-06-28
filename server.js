@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import authRoutes from './src/routes/auth.routes.js';
 import groupsRoutes from './src/routes/groups.routes.js';
 import predictionsRoutes from './src/routes/predictions.routes.js';
+import startCronJob from './src/services/cronService.js';
 
 dotenv.config();
 
@@ -31,4 +32,6 @@ app.get('/api/status', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
+  // Iniciar el Cron Job
+  startCronJob();
 });

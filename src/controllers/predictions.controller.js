@@ -1,6 +1,33 @@
 import { Prediction } from '../models/Prediction.js';
 import { Group } from '../models/Group.js';
 
+// Función auxiliar exportada para que pueda ser reusada por el cronService
+export const computePoints = (prediction, resultadoReal) => {
+  let points = 0;
+  
+  const predDiff = prediction.homeGoals - prediction.awayGoals;
+  const realDiff = resultadoReal.homeGoals - resultadoReal.awayGoals;
+
+  // a) Pleno (5 pts)
+  if (prediction.homeGoals === resultadoReal.homeGoals && prediction.awayGoals === resultadoReal.awayGoals) {
+    points = 5;
+  } 
+  // b) Diferencia Exacta (3 pts)
+  else if (predDiff === realDiff) {
+    points = 3;
+  }
+  // c) Tendencia/Ganador (1 pt)
+  else if (Math.sign(predDiff) === Math.sign(realDiff)) {
+    points = 1;
+  }
+  // d) Fallo (0 pts)
+  else {
+    points = 0;
+  }
+
+  return points;
+};
+
 export const createPrediction = async (req, res) => {
   try {
     const { userId, matchId, homeGoals, awayGoals } = req.body;
@@ -27,27 +54,7 @@ export const calculatePoints = async (req, res) => {
       return res.status(404).json({ message: 'Predicción no encontrada' });
     }
 
-    let points = 0;
-    
-    const predDiff = prediction.homeGoals - prediction.awayGoals;
-    const realDiff = resultadoReal.homeGoals - resultadoReal.awayGoals;
-
-    // a) Pleno (5 pts)
-    if (prediction.homeGoals === resultadoReal.homeGoals && prediction.awayGoals === resultadoReal.awayGoals) {
-      points = 5;
-    } 
-    // b) Diferencia Exacta (3 pts)
-    else if (predDiff === realDiff) {
-      points = 3;
-    }
-    // c) Tendencia/Ganador (1 pt)
-    else if (Math.sign(predDiff) === Math.sign(realDiff)) {
-      points = 1;
-    }
-    // d) Fallo (0 pts)
-    else {
-      points = 0;
-    }
+    const points = computePoints(prediction, resultadoReal);
 
     prediction.points = points;
     await prediction.save();
