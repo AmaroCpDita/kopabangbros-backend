@@ -45,11 +45,17 @@ const startCronJob = () => {
 
       // Selectores de Flashscore indicados
       $('.event__match').each((index, element) => {
-        // Obtenemos todo el texto del partido para buscar "Finalizado" o "Terminado"
-        const matchText = $(element).text().trim().toLowerCase();
+        // Obtenemos todo el texto del partido original para depuración
+        const rawText = $(element).text().trim();
+        const matchText = rawText.toLowerCase();
         
-        // Verifica si el partido finalizó
-        if (matchText.includes('finalizado') || matchText.includes('terminado') || matchText.includes('ft')) {
+        console.log('[DEBUG] Bloque encontrado:', rawText);
+        
+        const isFinished = matchText.includes('finalizado') || matchText.includes('terminado') || matchText.includes('ft');
+        const isLive = matchText.includes('vivo') || matchText.includes('live') || matchText.includes('mitad') || matchText.includes('descanso') || matchText.match(/\d+'/); // \d+' detecta minutos como 45'
+        
+        // Verifica si el partido finalizó o está en vivo
+        if (isFinished || isLive) {
           
           const participants = $(element).find('.event__participant');
           let homeTeam = '';
@@ -73,12 +79,18 @@ const startCronJob = () => {
           }
 
           if (homeTeam && awayTeam && !isNaN(homeGoals) && !isNaN(awayGoals)) {
-            matchesData.push({ homeTeam, awayTeam, homeGoals, awayGoals });
+            matchesData.push({ 
+              homeTeam, 
+              awayTeam, 
+              homeGoals, 
+              awayGoals,
+              status: isFinished ? 'finished' : 'live'
+            });
           }
         }
       });
 
-      console.log(`[CRON] Encontrados ${matchesData.length} partidos finalizados en Flashscore.`);
+      console.log(`[CRON] Encontrados ${matchesData.length} partidos activos/finalizados en Flashscore.`);
 
       for (const scrapedMatch of matchesData) {
         // Buscamos el partido por el nombre de los equipos
@@ -87,14 +99,14 @@ const startCronJob = () => {
           awayTeam: scrapedMatch.awayTeam 
         });
         
-        // Si existe en nuestra base de datos y no ha sido procesado aún
-        if (match && match.status !== 'finished') {
+        // Actualizamos si el partido en BD no está terminado o si los goles/estado han cambiado
+        if (match && (match.status !== 'finished' || match.homeGoals !== scrapedMatch.homeGoals || match.awayGoals !== scrapedMatch.awayGoals)) {
           match.homeGoals = scrapedMatch.homeGoals;
           match.awayGoals = scrapedMatch.awayGoals;
-          match.status = 'finished';
+          match.status = scrapedMatch.status; // 'live' o 'finished'
           await match.save();
           
-          console.log(`[CRON] Partido ${match.homeTeam} vs ${match.awayTeam} actualizado a finalizado (${match.homeGoals}-${match.awayGoals}).`);
+          console.log(`[CRON] Partido ${match.homeTeam} vs ${match.awayTeam} actualizado (${match.status}): ${match.homeGoals}-${match.awayGoals}.`);
 
           // Disparador de puntos: Actualizar predicciones
           const predictions = await Prediction.find({ matchId: match._id.toString() });
