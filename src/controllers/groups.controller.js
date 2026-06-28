@@ -28,9 +28,6 @@ export const createGroup = async (req, res) => {
       members: [adminId] // Admin se une automáticamente
     });
 
-    user.groupId = newGroup._id;
-    await user.save();
-
     res.status(201).json(newGroup);
   } catch (error) {
     res.status(500).json({ message: 'Error al crear el grupo', error: error.message });
@@ -54,12 +51,19 @@ export const joinGroup = async (req, res) => {
       await group.save();
     }
 
-    user.groupId = group._id;
-    await user.save();
-
     res.json({ message: 'Unido al grupo exitosamente', group });
   } catch (error) {
     res.status(500).json({ message: 'Error al unirse al grupo', error: error.message });
+  }
+};
+
+export const getUserGroups = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const groups = await Group.find({ members: userId }).sort({ createdAt: -1 });
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener los grupos del usuario', error: error.message });
   }
 };
 

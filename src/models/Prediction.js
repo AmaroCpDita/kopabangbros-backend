@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const predictionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', required: true },
   matchId: { type: String, required: true },
   homeGoals: { type: Number, required: true },
   awayGoals: { type: Number, required: true },

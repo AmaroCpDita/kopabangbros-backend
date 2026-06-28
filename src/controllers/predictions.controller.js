@@ -30,12 +30,14 @@ export const computePoints = (prediction, resultadoReal) => {
 
 export const createPrediction = async (req, res) => {
   try {
-    const { userId, matchId, homeGoals, awayGoals } = req.body;
+    const { userId, groupId, matchId, homeGoals, awayGoals, advancingTeam } = req.body;
     
-    // Usamos findOneAndUpdate con upsert para evitar duplicados del mismo partido por el mismo usuario
+    if (!groupId) return res.status(400).json({ message: 'El groupId es obligatorio' });
+
+    // Usamos findOneAndUpdate con upsert para evitar duplicados del mismo partido por el mismo usuario EN EL MISMO GRUPO
     const newPrediction = await Prediction.findOneAndUpdate(
-      { userId, matchId },
-      { homeGoals, awayGoals },
+      { userId, matchId, groupId },
+      { homeGoals, awayGoals, advancingTeam },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
@@ -72,8 +74,8 @@ export const getGroupGlobalScore = async (req, res) => {
 
     if (!group) return res.status(404).json({ message: 'Grupo no encontrado' });
 
-    // Buscar predicciones de todos los miembros del grupo usando $in de Mongoose
-    const groupPredictions = await Prediction.find({ userId: { $in: group.members } });
+    // Ahora la puntuación del grupo se calcula solo con las predicciones hechas para este grupo
+    const groupPredictions = await Prediction.find({ groupId });
     
     const totalScore = groupPredictions.reduce((acc, curr) => acc + curr.points, 0);
 
@@ -85,8 +87,8 @@ export const getGroupGlobalScore = async (req, res) => {
 
 export const getUserPredictions = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const userPredictions = await Prediction.find({ userId });
+    const { userId, groupId } = req.params;
+    const userPredictions = await Prediction.find({ userId, groupId });
     res.json(userPredictions);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener predicciones', error: error.message });
