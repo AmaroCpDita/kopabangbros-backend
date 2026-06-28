@@ -10,9 +10,9 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const startCronJob = () => {
   // Ejecutar cada 5 minutos
   cron.schedule('*/5 * * * *', async () => {
-    console.log('[CRON] Iniciando web scraping de resultados en Google Sports...');
+    console.log('[CRON] Iniciando web scraping de resultados en Flashscore...');
     try {
-      const SCRAPE_URL = process.env.SCRAPE_URL || 'https://www.google.com/search?q=resultados+partidos+futbol+hoy&hl=es';
+      const SCRAPE_URL = process.env.SCRAPE_URL || 'https://m.flashscore.cl/';
       
       let html;
       try {
@@ -27,7 +27,7 @@ const startCronJob = () => {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'es-ES,es;q=0.9', // Asegura resultados en español
-            'Referer': 'https://www.google.com/'
+            'Referer': 'https://www.google.com/' // Mantenemos un referer confiable
           }
         });
         html = response.data;
@@ -43,24 +43,33 @@ const startCronJob = () => {
       const $ = cheerio.load(html);
       const matchesData = [];
 
-      // Selectores estables de Google indicados
-      $('div.imso-mh').each((index, element) => {
-        const statusText = $(element).find('span.imso_mh__ft-mtch').text().trim().toLowerCase();
+      // Selectores de Flashscore indicados
+      $('.event__match').each((index, element) => {
+        // Obtenemos todo el texto del partido para buscar "Finalizado" o "Terminado"
+        const matchText = $(element).text().trim().toLowerCase();
         
         // Verifica si el partido finalizó
-        if (statusText.includes('finalizado') || statusText.includes('terminado') || statusText.includes('ft')) {
-          const homeTeam = $(element).find('div.ellipsisize.imso_mh__first-tn-ed').text().trim();
-          const awayTeam = $(element).find('div.ellipsisize.imso_mh__second-tn-ed').text().trim();
+        if (matchText.includes('finalizado') || matchText.includes('terminado') || matchText.includes('ft')) {
           
-          // Los marcadores suelen estar en el mismo selector, el primero es local y el segundo visitante
-          const scores = $(element).find('div.imso_mh__l-tm-sc');
+          const participants = $(element).find('.event__participant');
+          let homeTeam = '';
+          let awayTeam = '';
           
+          if (participants.length >= 2) {
+             homeTeam = $(participants[0]).text().trim();
+             awayTeam = $(participants[1]).text().trim();
+          }
+          
+          // Flashscore suele usar .event__score, el formato suele ser "2 - 1" o similar
+          const scoreText = $(element).find('.event__score').text().trim();
           let homeGoals = NaN;
           let awayGoals = NaN;
           
-          if (scores.length >= 2) {
-             homeGoals = parseInt($(scores[0]).text().trim(), 10);
-             awayGoals = parseInt($(scores[1]).text().trim(), 10);
+          // Buscamos los números en el string del score
+          const scoreMatch = scoreText.match(/(\d+)\s*-\s*(\d+)/);
+          if (scoreMatch) {
+             homeGoals = parseInt(scoreMatch[1], 10);
+             awayGoals = parseInt(scoreMatch[2], 10);
           }
 
           if (homeTeam && awayTeam && !isNaN(homeGoals) && !isNaN(awayGoals)) {
@@ -69,7 +78,7 @@ const startCronJob = () => {
         }
       });
 
-      console.log(`[CRON] Encontrados ${matchesData.length} partidos finalizados en Google.`);
+      console.log(`[CRON] Encontrados ${matchesData.length} partidos finalizados en Flashscore.`);
 
       for (const scrapedMatch of matchesData) {
         // Buscamos el partido por el nombre de los equipos
