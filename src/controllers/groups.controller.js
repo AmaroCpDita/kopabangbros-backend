@@ -106,12 +106,37 @@ export const getGroupById = async (req, res) => {
     const { id } = req.params;
     
     // Poblamos los miembros (nombre e email)
-    const group = await Group.findById(id).populate('members', 'name email');
+    const group = await Group.findById(id).populate('members', 'name email avatar');
     if (!group) return res.status(404).json({ message: 'Grupo no encontrado' });
 
-    // Podemos obtener los puntajes de los miembros cruzando con las predicciones
-    // Opcional, pero dejémoslo simple retornando el grupo con members poblados.
-    res.json(group);
+    // 1. Obtener puntos de las predicciones de este grupo mediante una agregación eficiente
+    const mongoose = (await import('mongoose')).default;
+    const pointsAggregation = await (await import('../models/Prediction.js')).Prediction.aggregate([
+      { $match: { groupId: new mongoose.Types.ObjectId(id) } },
+      { $group: { _id: "$userId", totalPoints: { $sum: "$points" } } }
+    ]);
+
+    const pointsMap = {};
+    pointsAggregation.forEach(p => { 
+      pointsMap[p._id.toString()] = p.totalPoints; 
+    });
+
+    // 2. Mapear los miembros y asignarles sus puntos, calculando el total global a la vez
+    const groupObj = group.toObject();
+    let globalScore = 0;
+    
+    groupObj.members = groupObj.members.map(m => {
+      const pts = pointsMap[m._id.toString()] || 0;
+      globalScore += pts;
+      return { ...m, points: pts };
+    });
+    
+    // Opcional: ordenar miembros de mayor a menor puntaje
+    groupObj.members.sort((a, b) => b.points - a.points);
+    
+    groupObj.globalScore = globalScore;
+
+    res.json(groupObj);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener el grupo', error: error.message });
   }

@@ -34,6 +34,13 @@ export const createPrediction = async (req, res) => {
     
     if (!groupId) return res.status(400).json({ message: 'El groupId es obligatorio' });
 
+    const { Match } = await import('../models/Match.js');
+    const match = await Match.findById(matchId);
+    if (!match) return res.status(404).json({ message: 'Partido no encontrado' });
+    if (new Date() >= match.date) {
+      return res.status(403).json({ message: 'El partido ya comenzó. Ya no puedes predecir.' });
+    }
+
     // Usamos findOneAndUpdate con upsert para evitar duplicados del mismo partido por el mismo usuario EN EL MISMO GRUPO
     const newPrediction = await Prediction.findOneAndUpdate(
       { userId, matchId, groupId },

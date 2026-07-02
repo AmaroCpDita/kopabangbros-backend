@@ -7,8 +7,6 @@ import { Match } from './src/models/Match.js';
 import authRoutes from './src/routes/auth.routes.js';
 import groupsRoutes from './src/routes/groups.routes.js';
 import predictionsRoutes from './src/routes/predictions.routes.js';
-import standingsRoutes from './src/routes/standings.routes.js';
-
 console.log('--- CRON SERVICE CARGADO ---');
 import startCronJob from './src/services/cronService.js';
 
@@ -33,7 +31,6 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/predictions', predictionsRoutes);
-app.use('/api/standings', standingsRoutes);
 
 // Status Route
 app.get('/api/status', (req, res) => {
@@ -52,6 +49,8 @@ app.get('/api/partidos', async (req, res) => {
       awayTeam: m.awayTeam,
       homeGoals: m.homeGoals,
       awayGoals: m.awayGoals,
+      homePenalties: m.homePenalties,
+      awayPenalties: m.awayPenalties,
       date: m.date,
       phase: m.phase,
       status: m.status
@@ -94,6 +93,8 @@ app.post('/api/partidos/seed', async (req, res) => {
         awayTeam: awayTeam,
         homeGoals: m.score?.fullTime?.home ?? null,
         awayGoals: m.score?.fullTime?.away ?? null,
+        homePenalties: m.score?.penalties?.home ?? null,
+        awayPenalties: m.score?.penalties?.away ?? null,
         date: new Date(m.utcDate),
         phase: phaseMap[m.stage] || m.stage,
         status: m.status === 'FINISHED' ? 'finished' : (m.status === 'IN_PLAY' || m.status === 'PAUSED' ? 'live' : 'scheduled')
