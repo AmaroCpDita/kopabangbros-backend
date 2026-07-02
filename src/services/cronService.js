@@ -75,8 +75,8 @@ const runApiUpdate = async () => {
       const homeTeam = apiMatch.homeTeam.shortName || apiMatch.homeTeam.name;
       const awayTeam = apiMatch.awayTeam.shortName || apiMatch.awayTeam.name;
 
-      const homeGoals = apiMatch.score?.fullTime?.home ?? apiMatch.score?.regularTime?.home ?? 0;
-      const awayGoals = apiMatch.score?.fullTime?.away ?? apiMatch.score?.regularTime?.away ?? 0;
+      const homeGoals = (apiMatch.score?.regularTime?.home ?? 0) + (apiMatch.score?.extraTime?.home ?? 0);
+      const awayGoals = (apiMatch.score?.regularTime?.away ?? 0) + (apiMatch.score?.extraTime?.away ?? 0);
       
       const homePenalties = apiMatch.score?.penalties?.home ?? null;
       const awayPenalties = apiMatch.score?.penalties?.away ?? null;
