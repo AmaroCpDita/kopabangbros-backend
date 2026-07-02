@@ -85,14 +85,21 @@ app.post('/api/partidos/seed', async (req, res) => {
 
     const matchesToInsert = response.data.matches.map(m => {
       const homeTeam = m.homeTeam?.name || 'TBD';
-      const awayTeam = m.awayTeam?.name || 'TBD';
+      let homeGoals = 0, awayGoals = 0;
+      if (m.score?.duration === 'PENALTY_SHOOTOUT' || m.score?.duration === 'EXTRA_TIME') {
+        homeGoals = (m.score.regularTime?.home ?? 0) + (m.score.extraTime?.home ?? 0);
+        awayGoals = (m.score.regularTime?.away ?? 0) + (m.score.extraTime?.away ?? 0);
+      } else {
+        homeGoals = m.score?.fullTime?.home ?? null;
+        awayGoals = m.score?.fullTime?.away ?? null;
+      }
       
       return {
         apiId: m.id.toString(),
-        homeTeam: homeTeam,
-        awayTeam: awayTeam,
-        homeGoals: (m.score?.regularTime?.home ?? 0) + (m.score?.extraTime?.home ?? 0),
-        awayGoals: (m.score?.regularTime?.away ?? 0) + (m.score?.extraTime?.away ?? 0),
+        homeTeam: m.homeTeam.shortName || m.homeTeam.name,
+        awayTeam: m.awayTeam.shortName || m.awayTeam.name,
+        homeGoals,
+        awayGoals,
         homePenalties: m.score?.penalties?.home ?? null,
         awayPenalties: m.score?.penalties?.away ?? null,
         date: new Date(m.utcDate),

@@ -75,8 +75,14 @@ const runApiUpdate = async () => {
       const homeTeam = apiMatch.homeTeam.shortName || apiMatch.homeTeam.name;
       const awayTeam = apiMatch.awayTeam.shortName || apiMatch.awayTeam.name;
 
-      const homeGoals = (apiMatch.score?.regularTime?.home ?? 0) + (apiMatch.score?.extraTime?.home ?? 0);
-      const awayGoals = (apiMatch.score?.regularTime?.away ?? 0) + (apiMatch.score?.extraTime?.away ?? 0);
+      let homeGoals = 0, awayGoals = 0;
+      if (apiMatch.score?.duration === 'PENALTY_SHOOTOUT' || apiMatch.score?.duration === 'EXTRA_TIME') {
+        homeGoals = (apiMatch.score.regularTime?.home ?? 0) + (apiMatch.score.extraTime?.home ?? 0);
+        awayGoals = (apiMatch.score.regularTime?.away ?? 0) + (apiMatch.score.extraTime?.away ?? 0);
+      } else {
+        homeGoals = apiMatch.score?.fullTime?.home ?? 0;
+        awayGoals = apiMatch.score?.fullTime?.away ?? 0;
+      }
       
       const homePenalties = apiMatch.score?.penalties?.home ?? null;
       const awayPenalties = apiMatch.score?.penalties?.away ?? null;
